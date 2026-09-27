@@ -13,16 +13,17 @@
 ## Install
 
 ```bat
-irm https://raw.githubusercontent.com/supportpantheon-sys/Darkos-Windows-Utility-Tool-DWUT/main/bootstrap.ps1 | iex
-```
-
-```bat
 pip install customtkinter pillow psutil pywin32 pymem requests
 ```
 
 For GPU stats on the Dashboard, install and run [OpenHardwareMonitor](https://openhardwaremonitor.org/) first.
 
 ## Launch
+
+```bat
+irm https://raw.githubusercontent.com/supportpantheon-sys/Darkos-Windows-Utility-Tool-DWUT/main/bootstrap.ps1 | iex
+```
+OR
 
 ```bat
 python run.py
