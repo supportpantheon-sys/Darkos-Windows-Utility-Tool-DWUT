@@ -1,4 +1,4 @@
-# Darko's Windows Utility Tool (DWUT)
+# Darko's Windows Utility Tool (DWUT)   proof
 
 * UTILITY TOOL DESIGNED FOR WINDOWS 10 AND 11.
 
