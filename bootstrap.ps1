@@ -196,9 +196,13 @@ if (-not $alreadyInstalled) {
         Pause-Exit "Extraction failed: $_"
     }
 
-    # GitHub source zips have a single top-level folder; flatten it
+    # Zips may have a single top-level folder (e.g. DWUT-V3\ or <repo>-main\).
+    # For V3 the package layout is:  <top-folder>\run.py + <top-folder>\app\ etc.
+    # We copy the entire top-level folder into INSTALL_DIR so the relative paths
+    # between run.py and its sibling packages are preserved.
     $inner = Get-ChildItem $extractTmp -Directory | Select-Object -First 1
     $sourceRoot = if ($inner) { $inner.FullName } else { $extractTmp }
+    $topFolderName = if ($inner) { $inner.Name } else { "" }
 
     # Copy into install dir
     if (-not (Test-Path $INSTALL_DIR)) {
@@ -206,9 +210,13 @@ if (-not $alreadyInstalled) {
     }
 
     Write-Step "Installing to $INSTALL_DIR..."
-    # Copy everything, overwriting existing files
+    # Copy the top-level folder (and everything inside it) into INSTALL_DIR,
+    # keeping the folder name so that run.py and its sibling packages stay together.
+    $destRoot = if ($topFolderName) { Join-Path $INSTALL_DIR $topFolderName } else { $INSTALL_DIR }
+    if (-not (Test-Path $destRoot)) { New-Item -ItemType Directory -Path $destRoot -Force | Out-Null }
+
     Get-ChildItem $sourceRoot -Recurse | ForEach-Object {
-        $dest = $_.FullName.Replace($sourceRoot, $INSTALL_DIR)
+        $dest = $_.FullName.Replace($sourceRoot, $destRoot)
         if ($_.PSIsContainer) {
             if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
         } else {
@@ -230,11 +238,17 @@ Write-Step "Installing Python dependencies..."
 
 & $pyExe -m pip install --upgrade pip --quiet --no-warn-script-location 2>&1 | Out-Null
 
-$deps = @("customtkinter>=5.2.0", "Pillow>=10.0.0", "psutil>=5.9.0", "pywin32>=306", "pymem>=1.12.0", "requests>=2.31.0")
+$deps = @("customtkinter>=5.2.0", "Pillow>=10.0.0", "psutil>=5.9.0", "pywin32>=306", "pymem>=1.12.0", "requests>=2.31.0", "wmi>=1.5.1", "nvidia-ml-py>=12.535.0")
 
-# Use requirements.txt if present
-$reqFile = Join-Path $INSTALL_DIR "requirements.txt"
-if (Test-Path $reqFile) {
+# Use requirements.txt if present — check V3 subfolder first, then flat install dir
+$reqFile = $null
+foreach ($reqCandidate in @(
+    (Join-Path $INSTALL_DIR "DWUT-V3\requirements.txt"),
+    (Join-Path $INSTALL_DIR "requirements.txt")
+)) {
+    if (Test-Path $reqCandidate) { $reqFile = $reqCandidate; break }
+}
+if ($reqFile) {
     & $pyExe -m pip install --upgrade -r $reqFile --quiet --no-warn-script-location 2>&1 | Out-Null
 } else {
     & $pyExe -m pip install --upgrade ($deps -join " ") --quiet --no-warn-script-location 2>&1 | Out-Null
@@ -255,14 +269,18 @@ Write-Info "  Run it before launching DWUT. (Optional — DWUT works without it.
 Write-Host ""
 
 # ── STEP 8: Launch DWUT ──────────────────────────────────────────────────────
-# Find run.py — handle both flat and nested layouts
+# Find run.py — V3 layout: run.py sits at the package root alongside app/, core/, modules/, ui/
 $runScript = $null
 foreach ($candidate in @(
-    (Join-Path $INSTALL_DIR "dmurt\run.py"),
+    # V3 layout — zip extracts to a single top-level folder (e.g. DWUT-V3\)
+    (Join-Path $INSTALL_DIR "DWUT-V3\run.py"),
+    # Release asset or manually renamed folder
     (Join-Path $INSTALL_DIR "run.py"),
-    # GitHub source zip extracts with the repo name as top folder
-    (Join-Path $INSTALL_DIR "$REPO-main\dmurt\run.py"),
-    (Join-Path $INSTALL_DIR "$REPO-main\run.py")
+    # GitHub source zip uses "<repo>-main" as the top-level folder
+    (Join-Path $INSTALL_DIR "$REPO-main\run.py"),
+    # Legacy / pre-V3 paths kept for fallback
+    (Join-Path $INSTALL_DIR "dmurt\run.py"),
+    (Join-Path $INSTALL_DIR "$REPO-main\dmurt\run.py")
 )) {
     if (Test-Path $candidate) { $runScript = $candidate; break }
 }
