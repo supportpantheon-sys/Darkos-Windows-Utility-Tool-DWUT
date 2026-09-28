@@ -1,0 +1,31 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# User data / settings
+settings/
+*.log
+logs/
+
+# Build / dist artifacts
+build/
+dist/
+*.egg-info/
+*.spec
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Temp downloads
+*.zip
+!DWUT_v*.zip
