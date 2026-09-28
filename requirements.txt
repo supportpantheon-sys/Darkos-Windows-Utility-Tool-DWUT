@@ -1,9 +1,0 @@
-# DWUT — Python dependencies
-# Install with:  pip install -r requirements.txt
-
-customtkinter>=5.2.0
-Pillow>=10.0.0
-psutil>=5.9.0
-pywin32>=306
-pymem>=1.12.0
-requests>=2.31.0
